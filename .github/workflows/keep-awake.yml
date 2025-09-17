@@ -1,0 +1,43 @@
+name: Keep Apps Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # every 10 minutes (UTC)
+  workflow_dispatch:         # allows manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout (no code needed, but good practice)
+        uses: actions/checkout@v4
+
+      - name: Ping apps from PING_URLS secret (log-only)
+        env:
+          PING_URLS: ${{ secrets.PING_URLS }}
+        run: |
+          echo "Starting ping run..."
+          # Read lines from the secret into an array, ignore empty lines
+          IFS=$'\n' read -r -d '' -a URLS <<< "$PING_URLS" || true
+
+          for url in "${URLS[@]}"; do
+            url=$(echo "$url" | xargs)   # trim whitespace
+            if [ -z "$url" ]; then
+              continue
+            fi
+
+            echo "→ Pinging: $url"
+            # get HTTP code; curl exits non-zero only on network errors (not on HTTP errors)
+            HTTP_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$url" ) || HTTP_STATUS="000"
+
+            if [ "$HTTP_STATUS" != "200" ]; then
+              echo "⚠️  $url returned status $HTTP_STATUS"
+            else
+              echo "✅  $url is awake (200)"
+            fi
+            echo "------"
+          done
+
+          echo "Ping run finished."
