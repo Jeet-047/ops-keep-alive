@@ -2,7 +2,7 @@ name: Keep Apps Awake
 
 on:
   schedule:
-    - cron: '*/1 * * * *'   # every 10 minutes (UTC)
+    - cron: '*/5 8-23 * * *'   # every 10 minutes (UTC)
   workflow_dispatch:         # allows manual trigger
 
 jobs:
